@@ -1,0 +1,22 @@
+# docker-compose.yml
+# PostgresSQL documentation: https://hub.docker.com/_/postgres
+# docker compose down: stops and deletes containers, networks, volumes, and images that are defined
+# docker compose up -d: starts application and all services, -d to run the services in the background
+# docker exec -it factor_db psql -U postgres -d factor_data
+  # docker exec -it: means run an interactive terminal in running container
+  # factor_db: name of running container
+  # psql -U postgres -d factor_data: use psql command-line interface to log into factor_data with postgres user
+
+services: # definitions of all computing resources
+  # each service will map string represetation of service names to their definitions
+  db:
+    image: postgres:15 # base image - needs to be downloaded from DockerHub
+    container_name: factor_db # specify custom container name
+    environment: # define environment variables set in the container
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: factor_data
+    volumes: # define mount or host paths
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports: # port that the service will be run from
+      - "5432:5432"
