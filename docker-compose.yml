@@ -20,3 +20,9 @@ services: # definitions of all computing resources
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports: # port that the service will be run from
       - "5432:5432"
+  loader:
+    # "build" section defines how to create Docker image
+    build: ./data_loader # will create image withing data_loader subdirectory
+    # "depends_on" is used to control order of service startup/shutdown
+    depends_on: 
+      - db # will be created after db

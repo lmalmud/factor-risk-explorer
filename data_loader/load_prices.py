@@ -14,7 +14,7 @@ TICKERS = ['APPL', 'MSFT', 'GOOGL', 'AMZN']
 conn = psycopg2.connect(database='factor_data',
                         user='postgres',
                         password='postgres',
-                        host='localhost',
+                        host='db', # the name of the container that will be running database
                         port='5432')
 
 # Establish a cursor that will allow PostgreSQL commands to be executed
