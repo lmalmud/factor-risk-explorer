@@ -1,7 +1,6 @@
 # data_access.R
 # Functions to download data from SQL data for a particular ticker.
-library(DBI) # Import in order to connect to SQL data for dbConnect
-library(RPostgreSQL) # for RMYSQL::MySQL
+library(RPostgreSQL)
 
 dbGetQuery <- function(ticker) {
   drv <- dbDriver("PostgreSQL") # Need a driver that is PostgreSQL
@@ -11,8 +10,8 @@ dbGetQuery <- function(ticker) {
                    port = 5432,
                    user = "postgres",
                    password = "postgres");
-  query <- sprintf("FROM vw_returns SELECT * WHERE ticker = %s;", ticker);
-  result <- dbGetQuery(conn, query);
+  query <- sprintf("SELECT * FROM vw_returns WHERE ticker = '%s'", ticker);
+  result <- RPostgreSQL::dbGetQuery(conn, query);
   print(result)
 }
 

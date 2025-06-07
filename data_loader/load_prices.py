@@ -20,8 +20,7 @@ import pandas as pd
 
 # Ticker is the unique shorthange for a publically traded stock or security
 # These are the tickers we would like to use for this dataset
-# TICKERS = ['APPL', 'MSFT', 'GOOGL', 'AMZN']
-TICKERS = ['GOOGL'] # for testing purposes
+TICKERS = ['MSFT', 'GOOGL', 'AMZN', 'BTC-USD']
 
 def load_prices():
     '''
@@ -41,12 +40,16 @@ def load_prices():
     for ticker in TICKERS:
         data = yf.download(ticker, start='2022-01-01', end=datetime.today().strftime('%Y-%m-%d'))
         ticker_obj = yf.Ticker(ticker) # In order to access long name, need a ticker object
+        
+        long_name = ticker
+        if 'longName' in ticker_obj.info.keys(): # Not all stocks have a long name associated
+            long_name = ticker_obj.info['longName']
 
         # Sometimes yf.download will put the indices as nested if it thinks multiple tickers are being downloaded
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = data.columns.get_level_values(0) # Flatten the indices
 
-        cur.execute('INSERT INTO securities (ticker, name) VALUES (%s, %s) ON CONFLICT DO NOTHING', (ticker, ticker_obj.info['longName']))
+        cur.execute('INSERT INTO securities (ticker, name) VALUES (%s, %s) ON CONFLICT DO NOTHING', (ticker, long_name))
 
         # index is the row label, which for this dataset is the timestamp DateTimeIndex
         # row is a Series object containing the data for that row

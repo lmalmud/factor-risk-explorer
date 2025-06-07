@@ -9,6 +9,20 @@
 
 services: # definitions of all computing resources
   # each service will map string represetation of service names to their definitions
+
+  r-model:
+    build: 
+      context: . # the context is the root because that is where the relevat Dockerfile is
+      dockerfile: Dockerfile
+    volumes: # persistent data stores
+      - ./R:/app/R # format is source: target
+      - ./notebooks:/app/notebooks
+      - ./output:/app/output
+    working_dir: /app
+    depends_on:
+      - db
+      - loader
+
   db:
     image: postgres:15 # base image - needs to be downloaded from DockerHub
     container_name: factor_db # specify custom container name
@@ -20,11 +34,14 @@ services: # definitions of all computing resources
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports: # port that the service will be run from
       - "5432:5432"
+
   loader:
     # "build" section defines how to create Docker image
     build: ./data_loader # will create image withing data_loader subdirectory
-    volumes:
-    - ./data_loader/load_prices.py:/app/load_prices.py # bind-mount creates a link between the source and target
+    volumes: # bind-mount creates a link between the source and target
+    - ./data_loader/load_prices.py:/app/load_prices.py 
+    - ./data_loader/load_factors.py:/app/load_factors.py
+    - ./data_loader/load_macro.py:/app/load_macro.py
     # "depends_on" is used to control order of service startup/shutdown
     depends_on: 
       - db # will be created after db
