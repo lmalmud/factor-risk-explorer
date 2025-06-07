@@ -23,6 +23,8 @@ services: # definitions of all computing resources
   loader:
     # "build" section defines how to create Docker image
     build: ./data_loader # will create image withing data_loader subdirectory
+    volumes:
+    - ./data_loader/load_prices.py:/app/load_prices.py # bind-mount creates a link between the source and target
     # "depends_on" is used to control order of service startup/shutdown
     depends_on: 
       - db # will be created after db
