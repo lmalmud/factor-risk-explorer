@@ -1,34 +1,64 @@
 # data_access.R
 # Functions to download data from SQL data for a particular ticker.
+# To run: docker compose run r-model Rscript R/data_access.R
 
-library(RPostgres) # For creating the driver
-library(glue) # For safe connections (https://glue.tidyverse.org/reference/glue_sql.html#:~:text=glue_sql.Rd,DBI%3A%3ASQL()%20objects.)
+library(RPostgreSQL) # For creating the driver
+# Interface to PostgreSQL databases in R
 
+library(glue) # For safe connections
+# Use glue_sql() to avoid SQL injection
+
+library(dplyr) # For database manipulations
+
+library(here)
+
+# Creates and returns a connection to the PostgreSQL database
 get_db_connection <- function() {
-  dbConnect(RPostgres::Postgres(), # Driver
+  dbConnect(RPostgreSQL::PostgreSQL(), # Driver
             dbname = "factor_data",
             host = "db",
             port = 5432,
             user = "postgres",
-            password = "postgres");
+            password = "postgres")
 }
 
+# Retrieves and returns data for a given ticker
 get_returns_data <- function(conn, ticker) {
-  query <- glue::glue_sql("SELECT * FROM vw_returns WHERE ticker = {ticker}", .con = conn)
+  # Construct parametrized SQL query
+  query <- glue::glue_sql(
+                          "SELECT * FROM vw_returns WHERE ticker = {ticker}",
+                          .con = conn)
+  # Stores query result in df
   df <- dbGetQuery(conn, query)
 }
 
-dbGetQuery <- function(ticker) {
-  drv <- dbDriver("PostgreSQL") # Need a driver that is PostgreSQL
-  conn <- dbConnect(drv,
-                   dbname = "factor_data",
-                   host = "db",
-                   port = 5432,
-                   user = "postgres",
-                   password = "postgres");
-  query <- sprintf("SELECT * FROM vw_returns WHERE ticker = '%s'", ticker);
-  result <- RPostgreSQL::dbGetQuery(conn, query);
-  print(result)
+# Pull all factor data
+get_factor_data <- function(conn) {
+  query <- "SELECT * FROM factors_daily"
+  df <- dbGetQuery(conn, query)
+  # Implicit return behavior automatically returns the last line
+  df <- df %>% mutate(date = as.Date(date))
 }
 
-dbGetQuery('MSFT')
+# Main function to pull and join
+get_merged_data <- function(ticker) {
+  conn <- get_db_connection()
+  on.exit(dbDisconnect(conn))  # ensure disconnection on exit
+  
+  returns <- get_returns_data(conn, ticker)
+  factors <- get_factor_data(conn)
+  
+  # Join on date
+  merged <- left_join(returns, factors, by = "date") %>%
+    mutate(rtexcess= log_ret - rf) %>%
+    arrange(date)
+
+  # log returns anad risk-free rate are both expressed as per-period rates
+  # they are both in decimal format
+  # log returns approximate the continously compounted return for that period
+
+  saveRDS(merged, here('output', paste0("merged_", ticker, ".rds")))
+  
+}
+
+get_merged_data("MSFT")
