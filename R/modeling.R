@@ -1,5 +1,6 @@
 # modeling.R
 # Rolling Fama-French-5-plus-Momentum regression engine
+# To run: docker compose run r-model Rscript R/modeling.R
 
 # Rolling (windowed) regression fits the same
 # linear model repeatedly on a sliding, fixed-length window
@@ -24,7 +25,7 @@ run_rolling_ff6 <- function(df, window = 252) {
   df <- df %>%
     arrange(date) %>%
     drop_na()
-  print(df)
+  print(typeof(df))
 
   # rollapply returns a list; convert each element to a data frame
   roll_list <- rollapplyr(
@@ -33,51 +34,38 @@ run_rolling_ff6 <- function(df, window = 252) {
     by.column   = FALSE,
     align       = "right",
     FUN = function(slice) {
-        if (nrow(slice) == 0) {
-            print("Empty slice!")
-            return(NULL)
-        }
-        mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = slice)
-        coef_tbl  <- tidy(mod) %>% select(term, estimate, std.error)
-        glance_tbl <- glance(mod) %>% select(r.squared, adj.r.squared, sigma)
-        out <- tibble(
-            window_end = max(slice$date),
-            coefs      = list(coef_tbl),
-            stats      = list(glance_tbl)
-        )
-        print(out)
-        out
+      slice <- as.data.frame(slice)
+
+      # output things that may be resulting in NaN
+      if (nrow(slice) <= 7) return(NULL)
+      if (sd(slice$rtexcess) == 0) return(NULL)
+
+      # if there are no values in the slice, skip it
+      if (nrow(slice) == 0) {
+        print("Empty slice!")
+        return(NULL)
+      }
+
+      mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = slice)
+      coef_tbl  <- tidy(mod) %>% select(term, estimate, std.error)
+      glance_tbl <- glance(mod) %>% select(r.squared, adj.r.squared, sigma)
+      out <- tibble(
+        window_end = max(slice$date),
+        coefs      = list(coef_tbl),
+        stats      = list(glance_tbl)
+      )
+    
+      # display the current stats to the screen
+      print(out)
     }
-    # FUN         = function(slice) { # for each window slice...
-    #   mod <- lm(excess_ret ~ MKT + SMB + HML + RMW + CMA + MOM,
-    #             data = slice)
-    #   # fits a linear model of excess returns on the six factors
 
-    #   # Coefficients (long) + window metadata
-    #   coef_tbl  <- tidy(mod) %>%
-    #     select(term, estimate, std.error)
-    #   # broom::tidy(mod) will extract model coefficients
-    #   # only keep the term, estimate, and standard error
-
-    #   # Model-level stats
-    #   glance_tbl <- glance(mod) %>%
-    #     select(r.squared, adj.r.squared, sigma)
-    #   # broom::glance() will get the model-level statistics
-    #   # and keeps r^2, adjusted r^2, and sigma
-
-    #   # returns tibble for each window
-    #   tibble(
-    #     window_end = max(slice$date), # last date in the window
-    #     coefs      = list(coef_tbl), # coefficients table (as list-column)
-    #     stats      = list(glance_tbl) # model stats (as list-column)
-    #   )
-    # }
   )
 
   # combines all window results into a single dataframe
   # unnest the nested columns so everything is long & tidy
   # unest_longer will espand list-columns so each statistic is in its
   # own column
+  roll_list <- as.data.frame(roll_list)
   roll_df <- roll_list %>%
     bind_rows() %>%
     unnest_longer(coefs) %>%         # brings term/estimate/std.error up
@@ -88,5 +76,7 @@ run_rolling_ff6 <- function(df, window = 252) {
 # ----------------------------------------------------------------
 # Example (comment out in production):
 merged_df <- readRDS("output/merged_MSFT.rds")  # whatever path you use
+merged_df <- as.data.frame(merged_df)
 beta_ts   <- run_rolling_ff6(merged_df)
 head(beta_ts)
+saveRDS(beta_ts, 'beta_ts_test.rds')
