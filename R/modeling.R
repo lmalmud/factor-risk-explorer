@@ -7,13 +7,17 @@
 # of observations ordered in time
 # Our window size is 252 trading days = 1 year
 
-library(zoo) # rollapply() - rolling window operations
-library(broom) # tidy(), glance()
-library(dplyr) # data manipulation
-library(tidyr) # unnest_longer()
-library(here) # for file paths
-library(glue) # for making strings
-library(purrr) # for compact()
+suppressPackageStartupMessages({
+  library(zoo) # rollapply() - rolling window operations
+  library(broom) # tidy(), glance()
+  library(dplyr) # data manipulation
+  library(tidyr) # unnest_longer()
+  library(here) # for file paths
+  library(glue) # for making strings
+  library(purrr) # for compact()
+})
+
+temp = TRUE
 
 # Run rolling 6-factor regression for a single ticker
 #
@@ -27,50 +31,43 @@ run_rolling_ff6 <- function(df, window = 252) {
   # Sorts by date and removes any rows with missing values
   df <- df %>%
     arrange(date) %>%
-    drop_na()
+    drop_na() %>%
+    select(date, rtexcess, mkt_rf, smb, hml, rmw, cma, mom) %>%
+    mutate(across(-date, as.numeric))
 
   # rollapply returns a list usually, but in this case
   # some returned items will be NULL
-  roll_zoo <- rollapplyr(
-    data        = df,
-    width       = window,
+  
+    roll_zoo <- zoo::rollapplyr(
+    data      = df,
+    width     = window,
+    by.column = FALSE,
+    align     = "right",
+    FUN = function(sl) {
 
-    # if true, the function is applied to each column separately
-    by.column   = FALSE,
-    align       = "right",
-    FUN = function(slice) {
-      slice <- as.data.frame(slice)
+       sl <- as.data.frame(sl)
 
-      # skip tiny or flat windows
-      if (nrow(slice) < 10 || sd(slice$rtexcess) == 0) {
-        return(NULL)                # rollapply will store NA for this slot
-      }
+      # safety filters ----------------------------------------------------
+      if (nrow(sl) < 10 ||
+          sd(sl[["rtexcess"]]) == 0 ||
+          any(vapply(sl[, -1], sd, numeric(1)) == 0))   # any constant predictor
+        return(NULL)
 
-      mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = slice)
+      mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = sl)
 
-      tibble(
-        window_end = max(slice$date),
+      tibble::tibble(
+        window_end = max(sl[["date"]]),
         coefs      = list(broom::tidy(mod)[, c("term","estimate","std.error")]),
         stats      = list(broom::glance(mod)[, c("r.squared","adj.r.squared","sigma")])
       )
-
     }
-
   )
 
-  
-
-  roll_df <- roll_zoo |>
-    as.list() |>                               # turn zoo into plain list
-    purrr::keep(~ inherits(.x, "data.frame")) |>  # drop the NA placeholders
-    dplyr::bind_rows()                      # combine rows
-
-    message("----- STRUCTURE OF roll_df =====")
-print(str(roll_df, max.level = 1))
-    return(roll_df)
-
-
-  }
+  roll_zoo |>
+    as.list() |>
+    purrr::keep(~ inherits(.x, "data.frame")) |>
+    dplyr::bind_rows()                         # <— three columns: window_end, coefs, stats
+}
   
 
 get_model_data <- function(ticker) {
@@ -85,7 +82,6 @@ get_model_data <- function(ticker) {
   print('names')
   print(names(beta_ts))
   print('7x3 expected')
-  print(beta_ts[[1]]$coefs[[1]])
   saveRDS(beta_ts, here('output', ticker, glue('{ticker}_beta.rds')))
 }
 

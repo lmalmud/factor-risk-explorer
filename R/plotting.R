@@ -1,6 +1,6 @@
 # plotting.R
 # Plot rolling Fama-French-5 + Momentum betas
-# Run: docker compose run r-model Rscript R/plotting.R MSFT
+# Run: docker compose run r-model Rscript R/plotting.R AMZN
 
 suppressPackageStartupMessages({
   library(ggplot2)
@@ -25,7 +25,7 @@ plot_factor_betas <- function(beta_ts, ticker, save_png = TRUE) {
       theme(legend.position = "bottom")
 
   if (save_png) {
-    ggsave(glue("output/ticker/{ticker}_betas_plot.png"), p,
+    ggsave(glue("output/{ticker}/{ticker}_betas_plot.png"), p,
            width = 8, height = 4.5, dpi = 300)
   }
   return(p)
