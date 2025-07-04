@@ -12,6 +12,7 @@ library(dplyr) # For database manipulations
 
 library(here)
 
+
 # Creates and returns a connection to the PostgreSQL database
 get_db_connection <- function() {
   dbConnect(RPostgreSQL::PostgreSQL(), # Driver
@@ -57,8 +58,10 @@ get_merged_data <- function(ticker) {
   # they are both in decimal format
   # log returns approximate the continously compounted return for that period
 
-  saveRDS(merged, here('output', paste0("merged_", ticker, ".rds")))
-  
+  source(here::here("R", "util_paths.R"))  # to import make_path
+  output_dir <- dirname(make_path(ticker, "merged", "rds"))
+  if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+  saveRDS(merged, make_path(ticker, "merged", "rds"))
 }
 
 get_merged_data("MSFT")
