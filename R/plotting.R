@@ -50,6 +50,7 @@ plot_factor_betas <- function(beta_df, ticker, save_png = TRUE) {
 
 }
 
+# Example run:
 # Take commandline arguments
 args <- commandArgs(trailingOnly = TRUE)
 
