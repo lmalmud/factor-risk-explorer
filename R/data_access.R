@@ -51,6 +51,7 @@ get_merged_data <- function(ticker) {
   
   # Join on date
   merged <- left_join(returns, factors, by = "date") %>%
+    mutate(across(-c(date, ticker), as.numeric)) %>%
     mutate(rtexcess= log_ret - rf) %>%
     arrange(date)
 

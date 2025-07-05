@@ -17,8 +17,6 @@ suppressPackageStartupMessages({
   library(purrr) # for compact()
 })
 
-temp = TRUE
-
 # Run rolling 6-factor regression for a single ticker
 #
 # @param df A tibble with columns:
@@ -32,59 +30,96 @@ run_rolling_ff6 <- function(df, window = 252) {
   df <- df %>%
     arrange(date) %>%
     drop_na() %>%
-    select(date, rtexcess, mkt_rf, smb, hml, rmw, cma, mom) %>%
-    mutate(across(-date, as.numeric))
+    select(date, rtexcess, mkt_rf, smb, hml, rmw, cma, mom)
 
-  # rollapply returns a list usually, but in this case
-  # some returned items will be NULL
-  
-    roll_zoo <- zoo::rollapplyr(
+  # For 7 factors: intercept, mkt_rf, smb, hml, rmw, cma, mom
+  coef_names <- c("(Intercept)", "mkt_rf", "smb", "hml", "rmw", "cma", "mom")
+  coef_cols <- as.vector(rbind(paste0(coef_names, "_est"),
+                               paste0(coef_names, "_se")))
+  coefs <- data.frame(matrix(ncol = length(coef_cols) + 1, nrow = 0))
+  colnames(coefs) <- c("date", coef_cols)
+
+  stats <- data.frame(date = as.Date(character()),
+                      r.squared = numeric(),
+                      adj.r.squared = numeric())
+
+  roll_zoo <- zoo::rollapplyr(
     data      = df,
     width     = window,
     by.column = FALSE,
     align     = "right",
     FUN = function(sl) {
 
-       sl <- as.data.frame(sl)
+      sl <- as.data.frame(sl)
+      sl$date <- as.Date(sl$date)
+      sl[, -1] <- lapply(sl[, -1], as.numeric)
+      if (any(is.na(sl))) return(NULL)
 
-      # safety filters ----------------------------------------------------
+      # Safety filters- throw out null
       if (nrow(sl) < 10 ||
-          sd(sl[["rtexcess"]]) == 0 ||
-          any(vapply(sl[, -1], sd, numeric(1)) == 0))   # any constant predictor
+            sd(sl[["rtexcess"]]) == 0 ||
+            any(vapply(sl[, -1],
+                       sd, numeric(1)) == 0)) # Any constant predictor
         return(NULL)
 
       mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = sl)
 
-      tibble::tibble(
-        window_end = max(sl[["date"]]),
-        coefs      = list(broom::tidy(mod)[, c("term","estimate","std.error")]),
-        stats      = list(broom::glance(mod)[, c("r.squared","adj.r.squared","sigma")])
+      coef_tbl <- broom::tidy(mod)[, c("term", "estimate", "std.error")]
+      # Ensure all terms are present, fill with NA if missing
+      coef_tbl <- coef_tbl[match(coef_names, coef_tbl$term), ]
+      # If any terms are missing, fill in with NA
+      coef_tbl$estimate[is.na(coef_tbl$estimate)] <- NA
+      coef_tbl$std.error[is.na(coef_tbl$std.error)] <- NA
+
+      # Build the row
+      coef_row <- c(
+        max(sl$date),
+        setNames(as.numeric(coef_tbl$estimate), paste0(coef_names, "_est")),
+        setNames(as.numeric(coef_tbl$std.error), paste0(coef_names, "_se"))
       )
+
+      coefs[nrow(coefs) + 1, ] <<- coef_row
+
+  stats_row <- data.frame(
+    date = max(sl$date),
+    r.squared = broom::glance(mod)$r.squared,
+    adj.r.squared = broom::glance(mod)$adj.r.squared
+  )
+
+  stats <<- rbind(stats, stats_row)
+
     }
   )
 
-  roll_zoo |>
-    as.list() |>
-    purrr::keep(~ inherits(.x, "data.frame")) |>
-    dplyr::bind_rows()                         # <— three columns: window_end, coefs, stats
+  return(list(coefs = coefs, stats = stats ))
+
 }
-  
+
 
 get_model_data <- function(ticker) {
-  input_path <- here('output', ticker, paste0(ticker, '_merged.rds'))
+
+  # Get the correct input path and throw an error if it cannot be found
+  input_path <- here("output", ticker, paste0(ticker, "_merged.rds"))
   if (!file.exists(input_path)) {
     stop(glue("Cannot find {input_path}. Run data_access.R first."))
   }
-  merged_df <- readRDS(input_path)  # whatever path you use
+
+  # Read the input
+  merged_df <- readRDS(input_path)
   merged_df <- as.data.frame(merged_df)
-  beta_ts   <- run_rolling_ff6(merged_df, window=100)
-  print(head(beta_ts))
-  print('names')
-  print(names(beta_ts))
-  print('7x3 expected')
-  saveRDS(beta_ts, here('output', ticker, glue('{ticker}_beta.rds')))
+
+  # Run the rolling regression
+  res <- run_rolling_ff6(merged_df)
+
+  # Convert this to be a date type
+  res$coefs <- res$coefs %>% mutate(date = as.Date(date))
+
+  # Save the outputs to the appropriate files
+  saveRDS(res$coefs, here("output", ticker, glue("{ticker}_beta.rds")))
+  saveRDS(res$stats, here("output", ticker,
+                          glue("{ticker}_regression_stats.rds")))
 }
 
 # ----------------------------------------------------------------
 # Example (comment out in production):
-get_model_data('AMZN')
+get_model_data("MSFT")
