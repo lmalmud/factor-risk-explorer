@@ -29,15 +29,16 @@ get_returns_data <- function(conn, ticker) {
                           "SELECT * FROM vw_returns WHERE ticker = {ticker}",
                           .con = conn)
   # Stores query result in df
-  df <- dbGetQuery(conn, query)
+  df <- dbGetQuery(conn, query) %>%
+    mutate(date = as.Date(date))
 }
 
 # Pull all factor data
 get_factor_data <- function(conn) {
   query <- "SELECT * FROM factors_daily"
   df <- dbGetQuery(conn, query)
-  # Implicit return behavior automatically returns the last line
   df <- df %>% mutate(date = as.Date(date))
+  return(df)
 }
 
 # Main function to pull and join

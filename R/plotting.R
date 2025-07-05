@@ -52,17 +52,17 @@ plot_factor_betas <- function(beta_df, ticker, save_png = TRUE) {
 
 # Example run:
 # Take commandline arguments
-args <- commandArgs(trailingOnly = TRUE)
+#args <- commandArgs(trailingOnly = TRUE)
 
 # The first commandline argument is the desired stock, otherwise
-ticker <- if (length(args) == 0) "AMZN" else toupper(args[1])
+#ticker <- if (length(args) == 0) "AMZN" else toupper(args[1])
 
 # Ensure that the file exists
-beta_path <- glue("output/{ticker}/{ticker}_beta.rds")
-if (!file.exists(beta_path)) {
-  stop(glue("Cannot find {beta_path}. Run modeling.R first."))
-}
+#beta_path <- glue("output/{ticker}/{ticker}_beta.rds")
+#if (!file.exists(beta_path)) {
+#  stop(glue("Cannot find {beta_path}. Run modeling.R first."))
+#}
 
 # Read the input produced by modeling.R
-beta_df <- readr::read_rds(beta_path)
-plot_factor_betas(beta_df, ticker)
+#beta_df <- readr::read_rds(beta_path)
+#plot_factor_betas(beta_df, ticker)

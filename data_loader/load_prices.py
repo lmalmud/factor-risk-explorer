@@ -11,18 +11,23 @@ https://www.dbvis.com/thetable/postgresql-upsert-insert-on-conflict-guide/#:~:te
 - A record is inserted if it does not exist and updated if it already does
 - ON CONFLICT triggers a particular action when INSERT raises a UNIQUE constraint violation
 - DO NOTHING will skip the insert operation
+
+To run: docker compose run loader python load_prices.py MSFT
 '''
 
 import yfinance as yf # for Yahoo! Finance Data
 import psycopg2 # for PostgreSQL
 from datetime import datetime
 import pandas as pd
+import argparse # to allow for command-line arguments
 
-# Ticker is the unique shorthange for a publically traded stock or security
-# These are the tickers we would like to use for this dataset
-TICKERS = ['MSFT', 'GOOGL', 'AMZN', 'BTC-USD']
+def parse_args():
+    p = argparse.ArgumentParser(description="Load daily prices into Postgres")
+    p.add_argument("tickers", nargs="+", help="List of tickers, e.g. APPL, MSFT")
+    p.add_argument("--start", default="2020-01-01")
+    return p.parse_args()
 
-def load_prices():
+def load_prices(TICKERS, start):
     '''
     Uses the yfinance library to insert relevant ticker data into the
     two SQL tables that store ticker name information and daily prices.
@@ -38,7 +43,7 @@ def load_prices():
     cur = conn.cursor()
 
     for ticker in TICKERS:
-        data = yf.download(ticker, start='2022-01-01', end=datetime.today().strftime('%Y-%m-%d'))
+        data = yf.download(ticker, start=start, end=datetime.today().strftime('%Y-%m-%d'))
         ticker_obj = yf.Ticker(ticker) # In order to access long name, need a ticker object
         
         long_name = ticker
@@ -74,3 +79,7 @@ docker exec -it factor_db psql -U postgres -d factor_data
 SELECT * FROM prices_daily LIMIT 5;
 SELECT * FROM securities LIMIT 5;
 '''
+
+if __name__ == "__main__":
+    args = parse_args()
+    load_prices(args.tickers, args.start)

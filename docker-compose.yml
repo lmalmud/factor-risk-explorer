@@ -20,9 +20,10 @@ services: # definitions of all computing resources
       - ./output:/app/output
       - .:/app # so that any outputted files in the main directory will be seen
     working_dir: /app
+    user: "${UID}:${GID}" # to write files
     depends_on:
-      - db
-      - loader
+      db:
+        condition: service_healthy
 
   db:
     image: postgres:15 # base image - needs to be downloaded from DockerHub
@@ -33,6 +34,11 @@ services: # definitions of all computing resources
       POSTGRES_DB: factor_data
     volumes: # define mount or host paths
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck: # wait-until-ready
+      test: ["CMD-SHELL", "pg_isready -U postgres -d factor_data"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
     ports: # port that the service will be run from
       - "5432:5432"
 
@@ -40,9 +46,10 @@ services: # definitions of all computing resources
     # "build" section defines how to create Docker image
     build: ./data_loader # will create image withing data_loader subdirectory
     volumes: # bind-mount creates a link between the source and target
-    - ./data_loader/load_prices.py:/app/load_prices.py 
-    - ./data_loader/load_factors.py:/app/load_factors.py
-    - ./data_loader/load_macro.py:/app/load_macro.py
+    - ./data_loader:/app
     # "depends_on" is used to control order of service startup/shutdown
     depends_on: 
-      - db # will be created after db
+      db:
+        condition: service_healthy
+
+# the health-check guarantees both loader and R jobs start only after Postgres

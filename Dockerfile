@@ -22,7 +22,7 @@ RUN R -e "install.packages(c( \
 WORKDIR /app
 COPY R/ R/
 COPY notebooks/ notebooks/
-COPY output/ output/
+#COPY output/ output/
 
 # Copy database credentials (if any) and loader scripts
 COPY db/ db/

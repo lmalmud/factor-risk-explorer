@@ -17,18 +17,6 @@ import psycopg2
 # Access to Fred data
 fred = Fred(api_key='178c4bfff4d35bf5d591dd34d814d000')
 
-def get_aligned_series(series_id, name):
-    '''
-    fred.get_series() returns pd.Series with its own index, which can
-    cause strange behavior later with .reindex() if the
-    date formats mismatch, so manually reset the index here.
-    '''
-    s = fred.get_series(series_id)
-    s.name = name
-    print(f'fetching series {series_id} with name {name}')
-    print(s)
-    return s
-
 def load_macro():
 
     # Choose dates that we would like to select data for and build a dataframe
@@ -73,3 +61,5 @@ Run:
 docker exec -it factor_db psql -U postgres -d factor_data
 SELECT * FROM macro_daily LIMIT 5;
 '''
+
+load_macro()

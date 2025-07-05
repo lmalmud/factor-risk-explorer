@@ -91,3 +91,5 @@ Run:
 docker exec -it factor_db psql -U postgres -d factor_data
 SELECT * FROM factors_daily LIMIT 5;
 '''
+
+load_factors()
