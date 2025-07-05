@@ -50,6 +50,9 @@ run_rolling_ff6 <- function(df, window = 252) {
     align     = "right",
     FUN = function(sl) {
 
+      # Convert columns to appropriate type- for some reason,
+      # does not inheret the typecasting earlier done
+      # Removing this causes the regression to fail
       sl <- as.data.frame(sl)
       sl$date <- as.Date(sl$date)
       sl[, -1] <- lapply(sl[, -1], as.numeric)
@@ -62,16 +65,18 @@ run_rolling_ff6 <- function(df, window = 252) {
                        sd, numeric(1)) == 0)) # Any constant predictor
         return(NULL)
 
+      # Run the linear regression
       mod <- lm(rtexcess ~ mkt_rf + smb + hml + rmw + cma + mom, data = sl)
 
       coef_tbl <- broom::tidy(mod)[, c("term", "estimate", "std.error")]
+
       # Ensure all terms are present, fill with NA if missing
       coef_tbl <- coef_tbl[match(coef_names, coef_tbl$term), ]
       # If any terms are missing, fill in with NA
       coef_tbl$estimate[is.na(coef_tbl$estimate)] <- NA
       coef_tbl$std.error[is.na(coef_tbl$std.error)] <- NA
 
-      # Build the row
+      # Build the coefficient row
       coef_row <- c(
         max(sl$date),
         setNames(as.numeric(coef_tbl$estimate), paste0(coef_names, "_est")),
@@ -80,22 +85,22 @@ run_rolling_ff6 <- function(df, window = 252) {
 
       coefs[nrow(coefs) + 1, ] <<- coef_row
 
-  stats_row <- data.frame(
-    date = max(sl$date),
-    r.squared = broom::glance(mod)$r.squared,
-    adj.r.squared = broom::glance(mod)$adj.r.squared
-  )
+      # Build the stats row
+      stats_row <- data.frame(
+        date = max(sl$date),
+        r.squared = broom::glance(mod)$r.squared,
+        adj.r.squared = broom::glance(mod)$adj.r.squared
+      )
 
-  stats <<- rbind(stats, stats_row)
+      stats <<- rbind(stats, stats_row)
 
     }
   )
-
   return(list(coefs = coefs, stats = stats ))
-
 }
 
-
+# For a given ticker:
+# will run the regression and output to the appropriate directory
 get_model_data <- function(ticker) {
 
   # Get the correct input path and throw an error if it cannot be found
@@ -120,6 +125,4 @@ get_model_data <- function(ticker) {
                           glue("{ticker}_regression_stats.rds")))
 }
 
-# ----------------------------------------------------------------
-# Example (comment out in production):
-get_model_data("MSFT")
+#get_model_data("MSFT")

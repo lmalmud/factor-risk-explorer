@@ -9,7 +9,6 @@ library(glue) # For safe connections
 # Use glue_sql() to avoid SQL injection
 
 library(dplyr) # For database manipulations
-
 library(here)
 
 
@@ -45,14 +44,14 @@ get_factor_data <- function(conn) {
 get_merged_data <- function(ticker) {
   conn <- get_db_connection()
   on.exit(dbDisconnect(conn))  # ensure disconnection on exit
-  
+
   returns <- get_returns_data(conn, ticker)
   factors <- get_factor_data(conn)
-  
+
   # Join on date
   merged <- left_join(returns, factors, by = "date") %>%
     mutate(across(-c(date, ticker), as.numeric)) %>%
-    mutate(rtexcess= log_ret - rf) %>%
+    mutate(rtexcess = log_ret - rf) %>%
     arrange(date)
 
   # log returns anad risk-free rate are both expressed as per-period rates
@@ -65,4 +64,4 @@ get_merged_data <- function(ticker) {
   saveRDS(merged, make_path(ticker, "merged", "rds"))
 }
 
-get_merged_data("MSFT")
+#get_merged_data("MSFT")
