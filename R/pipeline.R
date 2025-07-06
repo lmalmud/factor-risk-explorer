@@ -82,11 +82,11 @@ for (tkr in tickers) {
   })
 
   ## 4-E portfolio weights
-  message(flue("\t {tkr} PORTFOLIO WEIGHTS"))
+  message(glue("\t {tkr} PORTFOLIO WEIGHTS"))
   safe_run(tkr, {
     weights_df <- load_weights()
-    betas_df <- readRDS(here("output", tkr, glue("{tkr}_beta.rds")))
-    portfolio_exposures(weights_df, betas_df)
+    expos <- portfolio_exposures(weights_df)
+    saveRDS(expos, here("output", "portfolio_exposures.rds"))
   })
 }
 

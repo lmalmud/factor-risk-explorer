@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 source(here("R", "data_access.R"), local = TRUE)
 
 
-load_weights <- function(as_of = "2025-07-08") {
+load_weights <- function(as_of = "2021-01-08") {
   conn <- get_db_connection()
 
   # Only select rows with the appropriate date
