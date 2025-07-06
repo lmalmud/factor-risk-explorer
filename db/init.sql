@@ -30,3 +30,10 @@ CREATE TABLE macro_daily ( -- will store data from FRED
     inflation_expectation NUMERIC,
     unemployment_rate NUMERIC
 );
+
+CREATE TABLE portfolio_weights (
+    date    DATE,
+    ticker  TEXT,
+    weight  NUMERIC,
+    PRIMARY KEY (date, ticker)
+);
