@@ -3,3 +3,4 @@ A full-stack analytics tool that stores multi-asset price data in PostgreSQL, pu
 
 # workflow
 ./run_pipeline.sh <tickers>
+make app
