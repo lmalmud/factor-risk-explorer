@@ -1,3 +1,8 @@
+/*
+vw_returns.sql
+Computes log returns and rolling volatilities.
+*/
+
 -- deltes table if it exists
 DROP MATERIALIZED VIEW IF EXISTS vw_returns; 
 -- DROP: deletes an existing object https://www.postgresql.org/docs/current/sql-dropmaterializedview.html
