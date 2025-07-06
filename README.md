@@ -4,3 +4,5 @@ A full-stack analytics tool that stores multi-asset price data in PostgreSQL, pu
 # workflow
 ./run_pipeline.sh <tickers>
 make app
+
+![alt text](https://github.com/lmalmud/factor-risk-explor/blob/[branch]/image.jpg?raw=true)
