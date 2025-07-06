@@ -2,12 +2,17 @@
 # Get the portfolio weights from the portfolio_weights SQL database
 # To run: docker compose run --rm r-model Rscript R/weights.R
 
-source("R/data_access.R") # for get_db_connection
-library(RPostgreSQL) # to interact with server
-library(glue) # for safe SQL commands
-library(dplyr) # for mutate
+suppressPackageStartupMessages({
+  library(RPostgreSQL) # to interact with server
+  library(glue) # for safe SQL commands
+  library(dplyr) # for mutate
+  library(here)
+})
 
-load_weights <- function(conn, as_of = "2025-07-08") {
+source(here("R", "data_access.R"), local = TRUE)
+
+
+load_weights <- function(as_of = "2025-07-08") {
   conn <- get_db_connection()
 
   # Only select rows with the appropriate date

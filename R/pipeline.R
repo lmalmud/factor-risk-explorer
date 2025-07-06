@@ -21,10 +21,12 @@ tickers <- if (length(args) == 0) {
 
 #2 Source the modular scripts
 # local = TRUE refers to the environment from where source is called
-source(here("R", "data_access.R"), local = TRUE)
-source(here("R", "modeling.R"), local = TRUE)
-source(here("R", "plotting.R"), local = TRUE)
-source(here("R", "attribution.R"), local = TRUE)
+source(here("R", "data_access.R"), local = TRUE) # all data and SQL commands
+source(here("R", "modeling.R"), local = TRUE) # get_model_data, run_rolling_ff6
+source(here("R", "plotting.R"), local = TRUE) # plot_factor_betas
+source(here("R", "attribution.R"), local = TRUE) # performance_attribution
+source(here("R", "weights.R"), local = TRUE) # load_weights
+source(here("R", "exposures.R"), local = TRUE)
 
 #3 Helper: safe wrapper that logs errors but continues loop
 safe_run <- function(tkr, expr) {
@@ -35,19 +37,19 @@ safe_run <- function(tkr, expr) {
 }
 
 
-#4 Mail loop over tickers
+# 4 Mail loop over tickers
 for (tkr in tickers) {
 
   message(glue("\n=== {tkr} ===================================="))
 
-  ## 4-A  data ingest & clean  →  output/<tkr>/<tkr>_merged.rds
+  ## 4-A  data ingest & clean -> output/<tkr>/<tkr>_merged.rds
   message(glue("\t {tkr} ACCESS"))
   safe_run(tkr, {
     get_merged_data(tkr) # from data_access.R
   })
 
   ## 4-B  rolling regression
-  # →  output/<tkr>/<tkr>_beta.rds, output/<tkr>/<tkr>_regression_stats.rds
+  # -> output/<tkr>/<tkr>_beta.rds, output/<tkr>/<tkr>_regression_stats.rds
   message(glue("\t {tkr} ROLLING REGRESSION"))
   safe_run(tkr, {
     merged <- readRDS(here("output", tkr, glue("{tkr}_merged.rds")))
@@ -57,7 +59,7 @@ for (tkr in tickers) {
     saveRDS(res$stats,  here("output", tkr, glue("{tkr}_regression_stats.rds")))
   })
 
-  ## 4-C  beta-lines plot      →  output/<tkr>/<tkr>_beta.png
+  ## 4-C  beta-lines plot -> output/<tkr>/<tkr>_beta.png
   message(glue("\t {tkr} BETA PLOT"))
   safe_run(tkr, {
     plot_factor_betas( # plotting.R
@@ -66,7 +68,7 @@ for (tkr in tickers) {
     )
   })
 
-  ## 4-D  factor attribution   →  output/<tkr>/<tkr>_attribution.png
+  ## 4-D  factor attribution -> output/<tkr>/<tkr>_attribution.png
   message(glue("\t {tkr} FACTOR ATTRIBUTION"))
   safe_run(tkr, {
     merged   <- readRDS(here("output", tkr, glue("{tkr}_merged.rds")))
@@ -77,6 +79,14 @@ for (tkr in tickers) {
       ticker    = tkr,
       save_png  = TRUE
     )
+  })
+
+  ## 4-E portfolio weights
+  message(flue("\t {tkr} PORTFOLIO WEIGHTS"))
+  safe_run(tkr, {
+    weights_df <- load_weights()
+    betas_df <- readRDS(here("output", tkr, glue("{tkr}_beta.rds")))
+    portfolio_exposures(weights_df, betas_df)
   })
 }
 
