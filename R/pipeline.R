@@ -26,7 +26,8 @@ source(here("R", "modeling.R"), local = TRUE) # get_model_data, run_rolling_ff6
 source(here("R", "plotting.R"), local = TRUE) # plot_factor_betas
 source(here("R", "attribution.R"), local = TRUE) # performance_attribution
 source(here("R", "weights.R"), local = TRUE) # load_weights
-source(here("R", "exposures.R"), local = TRUE)
+source(here("R", "exposures.R"), local = TRUE) # portfolio_exposures
+source(here("R", "factors.R"), local = TRUE) # load_factors()
 
 #3 Helper: safe wrapper that logs errors but continues loop
 safe_run <- function(tkr, expr) {
@@ -87,6 +88,27 @@ for (tkr in tickers) {
     weights_df <- load_weights()
     expos <- portfolio_exposures(weights_df)
     saveRDS(expos, here("output", "portfolio_exposures.rds"))
+  })
+
+  ## 4-F VaR and ES
+  message(flue("\t VaR AND ES"))
+  safe_run(tkr, {
+    factors_df <- load_factors()
+    exposures_df <- readRDS(here("output", "portfolio_exposures.rds"))
+    risk_row <- calc_portfolio_var_est(factors_df, exposures_df)
+
+    conn <- get_db_connection()
+    on.exit(dbDisconnect(conn))
+
+    # Only select rows with the appropriate date
+    query <- glue::glue_sql("INSERT INTO risk_metric
+                            (date, confidence, var_1d, es_1d)
+                            VALUES ({risk_row$date},
+                            {risk_row$confidence},
+                            {risk_row$var_1d},
+                            {risk_row$es_1d})")
+
+    dbExecute(conn, query)
   })
 }
 

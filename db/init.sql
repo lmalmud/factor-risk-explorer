@@ -31,9 +31,16 @@ CREATE TABLE macro_daily ( -- will store data from FRED
     unemployment_rate NUMERIC
 );
 
-CREATE TABLE portfolio_weights (
+CREATE TABLE portfolio_weights ( -- reads in from data/weights
     date    DATE,
     ticker  TEXT,
     weight  NUMERIC,
     PRIMARY KEY (date, ticker)
 );
+
+CREATE TABLE risk_metrics ( -- stores VaR, ES
+    date DATE,
+    confidence NUMERIC,
+    var_1d NUMERIC,
+    es_1d NUMERIC
+)

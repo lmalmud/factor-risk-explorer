@@ -9,11 +9,12 @@ suppressPackageStartupMessages({
   library(here)
 })
 
-source(here("R", "data_access.R"), local = TRUE)
+source(here("R", "data_access.R"), local = TRUE) # for server
 
 
 load_weights <- function(as_of = "2021-01-08") {
   conn <- get_db_connection()
+  on.exit(dbDisconnect(conn))
 
   # Only select rows with the appropriate date
   query <- glue::glue_sql("SELECT * FROM portfolio_weights
