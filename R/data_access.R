@@ -2,14 +2,16 @@
 # Functions to download data from SQL data for a particular ticker.
 # To run: docker compose run r-model Rscript R/data_access.R
 
-library(RPostgreSQL) # For creating the driver
-# Interface to PostgreSQL databases in R
+suppressPackageStartupMessages({
+  library(RPostgreSQL) # For creating the driver
+  # Interface to PostgreSQL databases in R
 
-library(glue) # For safe connections
-# Use glue_sql() to avoid SQL injection
+  library(glue) # For safe connections
+  # Use glue_sql() to avoid SQL injection
 
-library(dplyr) # For database manipulations
-library(here)
+  library(dplyr) # For database manipulations
+  library(here)
+})
 
 
 # Creates and returns a connection to the PostgreSQL database

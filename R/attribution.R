@@ -3,10 +3,12 @@
 # and explain the returns of the stocks
 # Run: docker compose run r-model Rscript R/attribution.R
 
-library(glue) # for string concatenation
-library(dplyr) # for database modification
-library(ggplot2) # for plotting
-library(tidyr) # for pivot longer
+suppressPackageStartupMessages({
+  library(glue) # for string concatenation
+  library(dplyr) # for database modification
+  library(ggplot2) # for plotting
+  library(tidyr) # for pivot longer
+})
 
 performance_attribution <- function(merged_df,
                                     betas_df,
