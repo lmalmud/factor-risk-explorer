@@ -27,7 +27,7 @@ docker compose run --rm loader python load_macro.py
 docker compose run --rm loader python load_prices.py "${TICKERS[@]}"
 
 # load portfolio weights from the .csv
-docker compose run --rm loader load_weights.py data/weights_2025-07-08.csv
+docker compose run --rm loader python load_weights.py data/weights_2025-07-08.csv
 
 docker exec -i factor_db psql -U postgres -d factor_data < db/views/vw_returns.sql
 

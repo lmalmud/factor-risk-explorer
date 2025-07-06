@@ -47,6 +47,7 @@ services: # definitions of all computing resources
     build: ./data_loader # will create image withing data_loader subdirectory
     volumes: # bind-mount creates a link between the source and target
     - ./data_loader:/app
+    - ./data:/app/data
     # "depends_on" is used to control order of service startup/shutdown
     depends_on: 
       db:
