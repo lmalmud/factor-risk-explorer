@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 RUN R -e "install.packages(c( \
   'DBI', 'RPostgreSQL', 'glue', 'dplyr', 'tidyverse', \
   'zoo', 'broom', 'lubridate', 'PerformanceAnalytics', \
-  'knitr', 'rmarkdown', 'ggplot2', 'here' \
+  'knitr', 'rmarkdown', 'ggplot2', 'here' , 'shiny' \
 ), repos='https://cloud.r-project.org')"
 
 # Copy R scripts and notebooks into the image
